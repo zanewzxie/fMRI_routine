@@ -1,0 +1,101 @@
+#!/bin/tcsh -xef
+setenv FREESURFER_HOME /Applications/freesurfer
+source $FREESURFER_HOME/SetUpFreeSurfer.csh
+source $FREESURFER_HOME/FreeSurferEnv.csh
+
+set sid = ( 109)
+#108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123
+
+foreach sid ( $sid )                  # subject to process
+
+set subj = S${sid}
+set start_directory = /Volumes/HandDrive/ProjectName/${subj}/scans
+set freesurferdirectory = /Volumes/HandDrive/ProjectName/${subj}/FreeSurfer/HPC_IEM_${subj}/surf/SUMA
+
+cd ${start_directory}
+
+# import to AFNI, in NIFTI format
+#@SUMA_Make_Spec_FS -fspath HPC_IEM_S${subj}/surf -NIFTI -sid S${subj}
+
+# create ventricle and white matter masks
+# ** warning: it would be good to convert these indices to labels
+#             in case the output from FreeSurfer is changed
+cp ${freesurferdirectory}/aparc+aseg.nii ${start_directory}
+cp ${freesurferdirectory}/aparc.a2009s+aseg.nii ${start_directory}
+
+3dcalc -a aparc+aseg.nii -datum byte -prefix ${subj}_vent.nii \
+-expr 'amongst(a,4,43)'
+3dcalc -a aparc+aseg.nii -datum byte -prefix ${subj}_white.nii \
+-expr 'amongst(a,2,7,41,46,251,252,253,254,255)'
+
+# note: 16 (brainstem) was incorrectly included from @ANATICOR
+#       and then in this help through 2016
+
+# resting state Session 1
+afni_proc.py -subj_id ${subj}.resting.S1                   \
+-out_dir ${subj}.resting.S1                                \
+-blocks despike tshift blip align tlrc volreg blur mask regress \
+-dsets  ${subj}_S1_resting.nii                             \
+-copy_anat ${subj}_t1_mprage.nii                           \
+-blip_forward_dset ${subj}_S1_resting_AP.nii                  \
+-blip_reverse_dset ${subj}_S1_resting_PA.nii                  \
+-anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \
+-anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \
+-anat_follower_ROI FSvent epi ${subj}_vent.nii             \
+-anat_follower_ROI FSWe epi ${subj}_white.nii              \
+-anat_follower_erode FSvent FSWe                           \
+-align_opts_aea -cost lpc+ZZ                               \
+-tlrc_base MNI152_T1_2009c+tlrc                            \
+-tlrc_NL_warp                                              \
+-volreg_align_to MIN_OUTLIER                               \
+-volreg_align_e2a                                          \
+-volreg_tlrc_warp                                          \
+-mask_apply anat                                           \
+-regress_motion_per_run                                    \
+-regress_ROI_PC FSvent 3                                   \
+-regress_make_corr_vols aeseg FSvent                       \
+-regress_anaticor_fast                                     \
+-regress_anaticor_label FSWe                               \
+-regress_censor_motion 0.2                                 \
+-regress_censor_outliers 0.1                               \
+-regress_apply_mot_types demean deriv                      \
+-regress_est_blur_epits                                    \
+-regress_est_blur_errts
+
+tcsh -xef proc.${subj}.resting.S1 |& tee output.proc.${subj}.resting.S1
+
+
+# resting state Session 2
+afni_proc.py -subj_id ${subj}.resting.S2                   \
+-out_dir ${subj}.resting.S2                                \
+-blocks despike tshift blip align tlrc volreg blur mask regress \
+-dsets  ${subj}_S2_resting.nii                             \
+-copy_anat ${subj}_t1_mprage.nii                           \
+-blip_forward_dset ${subj}_S2_resting_AP.nii                  \
+-blip_reverse_dset ${subj}_S2_resting_PA.nii                  \
+-anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \
+-anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \
+-anat_follower_ROI FSvent epi ${subj}_vent.nii             \
+-anat_follower_ROI FSWe epi ${subj}_white.nii              \
+-anat_follower_erode FSvent FSWe                           \
+-align_opts_aea -cost lpc+ZZ                               \
+-tlrc_base MNI152_T1_2009c+tlrc                            \
+-tlrc_NL_warp                                              \
+-volreg_align_to MIN_OUTLIER                               \
+-volreg_align_e2a                                          \
+-volreg_tlrc_warp                                          \
+-mask_apply anat                                           \
+-regress_motion_per_run                                    \
+-regress_ROI_PC FSvent 3                                   \
+-regress_make_corr_vols aeseg FSvent                       \
+-regress_anaticor_fast                                     \
+-regress_anaticor_label FSWe                               \
+-regress_censor_motion 0.2                                 \
+-regress_censor_outliers 0.1                               \
+-regress_apply_mot_types demean deriv                      \
+-regress_est_blur_epits                                    \
+-regress_est_blur_errts
+
+tcsh -xef proc.${subj}.resting.S2 |& tee output.proc.${subj}.resting.S2
+
+end

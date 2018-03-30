@@ -1,0 +1,30 @@
+#!/bin/tcsh -xef
+
+set sid = ( 109)
+
+foreach sid ( $sid )                  # subject to process
+
+    set subj = S${sid}
+    set start_directory = /Volumes/HandDrive/ProjectName/${subj}/scans
+
+
+#copy the ROI
+cd ${start_directory}
+cd ..
+cd ..
+cp ROIs/ROI_MNI_lh.hipp.2mm+tlrc* ${subj}/scans/${subj}.resting.S1
+cp ROIs/ROI_MNI_lh.hipp.2mm+tlrc* ${subj}/scans/${subj}.resting.S2
+
+
+cd ${start_directory}/${subj}.resting.S1
+3dmaskave -quiet -mask ROI_MNI_lh.hipp.2mm+tlrc errts.${subj}.resting.S1.fanaticor+tlrc > lh.hpp.S1.ts.1D
+3dfim+ -bucket lh.hpp.S1.corr -out Correlation -ideal_file lh.hpp.S1.ts.1D -input errts.${subj}.resting.S1.fanaticor+tlrc
+3dcalc -a lh.hpp.S1.corr+tlrc -expr 'atanh(a)' -prefix lh.hpp.S1.Zr
+
+
+cd ${start_directory}/${subj}.resting.S2
+3dmaskave -quiet -mask ROI_MNI_lh.hipp.2mm+tlrc errts.${subj}.resting.S2.fanaticor+tlrc > lh.hpp.S2.ts.1D
+3dfim+ -bucket lh.hpp.S2.corr -out Correlation -ideal_file lh.hpp.S2.ts.1D -input errts.${subj}.resting.S2.fanaticor+tlrc
+3dcalc -a lh.hpp.S2.corr+tlrc -expr 'atanh(a)' -prefix lh.hpp.S2.Zr
+
+end

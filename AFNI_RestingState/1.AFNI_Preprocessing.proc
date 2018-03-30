@@ -1,0 +1,33 @@
+#!/bin/tcsh -xef
+
+set sid = (108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123)
+#108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123
+
+foreach sid ( $sid )                  # subject to process
+set subj = S${sid}
+set start_directory = /Volumes/HandDrive/ProjectName/${subj}/scans
+cd ${start_directory}
+
+# Preprocess with field distortion correction
+# blocks despike tshift blip align tlrc volreg blur mask scale
+
+afni_proc.py -subj_id ${subj}                                                            \
+-out_dir ${subj}                                                                     \
+-script proc.s1.${subj} -scr_overwrite                                               \
+-dsets  ${subj}_epi_run*.nii                                                         \
+-blocks despike tshift blip align tlrc volreg blur mask scale                       \
+-copy_anat ${subj}_t1_mprage.nii                                                    \
+-tlrc_opts_at -init_xform AUTO_CENTER                                               \
+-align_opts_aea -giant_move                                                         \
+-tlrc_base MNI_avg152T1+tlrc                                                        \
+-volreg_align_to MIN_OUTLIER                                                        \
+-volreg_align_e2a                                                                   \
+-volreg_tlrc_warp                                                                   \
+-blip_forward_dset ${subj}_epi_AP.nii                                             \
+-blip_reverse_dset ${subj}_epi_PA.nii                                             \
+-blur_in_automask                                                                   \
+-mask_apply anat                                                                    \
+-blur_size 2.0                                                                      \
+
+tcsh -xef proc.s1.${subj} |& tee output.proc.s1.${subj}
+end

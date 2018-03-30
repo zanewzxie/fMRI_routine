@@ -1,0 +1,31 @@
+#!/bin/tcsh -xef
+
+setenv FREESURFER_HOME /Applications/freesurfer
+source $FREESURFER_HOME/SetUpFreeSurfer.csh
+source $FREESURFER_HOME/FreeSurferEnv.csh
+
+
+set subj = (109)
+#108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123
+
+foreach subj ( $subj )                  # subject to process
+
+set subj = S${subj}
+set freesurferdirectory = /Volumes/HandDrive/ProjectName/${subj}/FreeSurfer/HPC_IEM_${subj}/
+set start_directory = /Volumes/HandDrive/ProjectName/${subj}/scans
+
+cd ${start_directory}
+cd ..
+mkdir FreeSurfer
+
+## Reset the SUBJECTS_DIR to the folder that we want the data to go to
+setenv SUBJECTS_DIR /Volumes/HandDrive/ProjectName/${subj}/FreeSurfer
+recon-all -i ${start_directory}/${subj}_t1_mprage.nii -subjid HPC_IEM_${subj}
+
+recon-all -all -s HPC_IEM_${subj}
+segmentHA_T1.sh HPC_IEM_${subj}
+
+## import to AFNI, in NIFTI format
+@SUMA_Make_Spec_FS -fspath ${freesurferdirectory}/surf -NIFTI -sid ${subj}
+
+end

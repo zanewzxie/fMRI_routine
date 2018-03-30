@@ -1,0 +1,14 @@
+#!/bin/tcsh -xef
+
+set start_directory = /Volumes/HandDrive/ProjectName/${subj}/scans
+
+cd ${start_directory}/${subj}.results
+
+# convert dimension
+3drefit -view tlrc -space MNI Data_result+tlrc
+
+afni -niml &
+suma -spec N27_both.spec -sv MNI_N27+tlrc
+
+
+
